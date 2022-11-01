@@ -12,6 +12,8 @@
 ;*	Internal Register Definitions and Constants
 ;***********************************************************
 .def	mpr = r16				; Multipurpose register
+.def	operand1 = r19
+.def	operand2 = r20
 .def	rlo = r0				; Low byte of MUL result
 .def	rhi = r1				; High byte of MUL result
 .def	zero = r2				; Zero register, set to zero in INIT, useful for calculations
@@ -103,7 +105,7 @@ LOADCOMPOUND:
 		; Load beginning address of first operand into X
 		ldi ZL, LOW(OperandC<<1)
 		ldi ZH, HIGH(OperandC<<1)	;Load Z with the address of string 1
-		ldi	YL, low(SUB16_OP1)+1	; Load low byte of address
+		ldi	YL, low(SUB16_OP1)+1	; Load low byte of address start with high byte
 		ldi	YH, high(SUB16_OP1)+1	; Load high byte of address
 		lpm mpr,Z+
 		st Y-, mpr					;Load first byte of op1
@@ -131,12 +133,12 @@ LOADMUL:
 		; Load beginning address of first operand into X
 		ldi ZL, LOW(OperandE1<<1)
 		ldi ZH, HIGH(OperandE1<<1)	;Load Z with the address of string 1
-		ldi	YL, low(SUB16_OP1)+1	; Load low byte of address
-		ldi	YH, high(SUB16_OP1)+1	; Load high byte of address
+		ldi	YL, low(SUB16_OP1)		; Load low byte of address
+		ldi	YH, high(SUB16_OP1)		; Load high byte of address
 		lpm mpr,Z+
-		st Y-, mpr					;Load first byte of op1
+		st Y+, mpr					;Load first byte of op1
 		lpm mpr,Z+
-		st Y-, mpr					;Load second byte of op1
+		st Y+, mpr					;Load second byte of op1
 
 		ldi ZL, LOW(OperandD<<1)
 		ldi ZH, HIGH(OperandD<<1)	;Load Z with the address of string 1
@@ -159,12 +161,12 @@ LOADSUB:
 		; Load beginning address of first operand into X
 		ldi ZL, LOW(OperandC<<1)
 		ldi ZH, HIGH(OperandC<<1)	;Load Z with the address of operand 1
-		ldi	YL, low(SUB16_OP1)+1	; Load low byte of address
-		ldi	YH, high(SUB16_OP1)+1	; Load high byte of address
+		ldi	YL, low(SUB16_OP1)		; Load low byte of address
+		ldi	YH, high(SUB16_OP1)		; Load high byte of address
 		lpm mpr,Z+
-		st Y-, mpr					;Load first byte of op1
+		st Y+, mpr					;Load first byte of op1
 		lpm mpr,Z+
-		st Y-, mpr					;Load second byte of op1
+		st Y+, mpr					;Load second byte of op1
 
 		ldi ZL, LOW(OperandD<<1)
 		ldi ZH, HIGH(OperandD<<1)	;Load Z with the address of operand 2
@@ -187,12 +189,12 @@ LOADADD:
 		; Load beginning address of first operand into X
 		ldi ZL, LOW(OperandA<<1)
 		ldi ZH, HIGH(OperandA<<1)	;Load Z with the address of operand 1
-		ldi	YL, low(ADD16_OP1)+1	; Load low byte of address
-		ldi	YH, high(ADD16_OP1)+1	; Load high byte of address
+		ldi	YL, low(ADD16_OP1)		; Load low byte of address
+		ldi	YH, high(ADD16_OP1)		; Load high byte of address
 		lpm mpr,Z+
-		st Y-, mpr					;Load first byte of op1
+		st Y+, mpr					;Load first byte of op1
 		lpm mpr,Z+
-		st Y-, mpr					;Load second byte of op1
+		st Y+, mpr					;Load second byte of op1
 
 		ldi ZL, LOW(OperandB<<1)
 		ldi ZH, HIGH(OperandB<<1)	;Load Z with the address of operand 2
@@ -225,8 +227,18 @@ ADD16:
 		ldi		ZL, low(ADD16_OP1)	; Load low byte of address
 		ldi		ZH, high(ADD16_OP1)	; Load high byte of address
 		; Execute the function
-		
-
+		ld operand1, X+
+		ld operand2, Y+				;Load lower bytes of operands
+		add operand1, operand2		;Add lower bytes of operands
+		st Z+, operand1				;Store in output
+		ld operand1, X+
+		ld operand2, Y+				;Load upper bytes of operands
+		adc operand1, operand2		;Add with carry upper bytes
+		st Z+, operand1				;Store in output
+		brcc skip					;If carry is clear skip to end
+		ldi mpr, 1
+		st Z,mpr					;Store carry bit in last register
+		skip:
 		ret						; End a function with RET
 
 ;-----------------------------------------------------------
@@ -235,9 +247,18 @@ ADD16:
 ;       result. Always subtracts from the bigger values.
 ;-----------------------------------------------------------
 SUB16:
-		; Execute the function here
-
-
+		; Load beginning address of result into Z
+		ldi		ZL, low(SUB16_OP1)	; Load low byte of address
+		ldi		ZH, high(SUB16_OP1)	; Load high byte of address
+		; Execute the function
+		ld operand1, X+
+		ld operand2, Y+				;Load lower bytes of operands
+		sub operand1, operand2		;Add lower bytes of operands
+		st Z+, operand1				;Store in output
+		ld operand1, X+
+		ld operand2, Y+				;Load upper bytes of operands
+		subc operand1, operand2		;Add with carry upper bytes
+		st Z+, operand1				;Store in output
 		ret						; End a function with RET
 
 ;-----------------------------------------------------------
