@@ -63,14 +63,14 @@ MAIN:							; The Main program
 		nop ; Check load ADD16 operands (Set Break point here #1)
 
 		; Call ADD16 function to display its results (calculate FCBA + FFFF)
-
+		rcall ADD16
 		nop ; Check ADD16 result (Set Break point here #2)
 
 
 		; Call function to load SUB16 operands
 		rcall LOADSUB
 		nop ; Check load SUB16 operands (Set Break point here #3)
-
+		rcall SUB16
 		; Call SUB16 function to display its results (calculate FCB9 - E420)
 		nop ; Check SUB16 result (Set Break point here #4)
 
@@ -78,14 +78,14 @@ MAIN:							; The Main program
 		; Call function to load MUL24 operands
 		rcall LOADMUL
 		nop ; Check load MUL24 operands (Set Break point here #5)
-
+		rcall MUL24
 		; Call MUL24 function to display its results (calculate FFFFFF * FFFFFF)
 		nop ; Check MUL24 result (Set Break point here #6)
 
 		; Setup the COMPOUND function direct test
 		rcall LOADCOMPOUND
 		nop ; Check load COMPOUND operands (Set Break point here #7)
-
+		rcall COMPOUND
 		; Call the COMPOUND function
 		nop ; Check COMPOUND result (Set Break point here #8)
 
@@ -103,19 +103,28 @@ DONE:	rjmp	DONE			; Create an infinite while loop to signify the
 LOADCOMPOUND:
 		push mpr
 		; Load beginning address of first operand into X
-		ldi ZL, LOW(OperandC<<1)
-		ldi ZH, HIGH(OperandC<<1)	;Load Z with the address of string 1
-		ldi	YL, low(SUB16_OP1)+1	; Load low byte of address start with high byte
-		ldi	YH, high(SUB16_OP1)+1	; Load high byte of address
+		ldi ZL, LOW(OperandG<<1)
+		ldi ZH, HIGH(OperandG<<1)	;Load Z with the address of string 1
+		ldi	YL, low(SUB16_OP1)	; Load low byte of address start with high byte
+		ldi	YH, high(SUB16_OP1)	; Load high byte of address
 		lpm mpr,Z+
-		st Y-, mpr					;Load first byte of op1
+		st Y+, mpr					;Load first byte of op1
 		lpm mpr,Z+
-		st Y-, mpr					;Load second byte of op1
+		st Y+, mpr					;Load second byte of op1
 
-		ldi ZL, LOW(OperandD<<1)
-		ldi ZH, HIGH(OperandD<<1)	;Load Z with the address of string 1
+		ldi ZL, LOW(OperandH<<1)
+		ldi ZH, HIGH(OperandH<<1)	;Load Z with the address of string 1
 		ldi	YL, low(SUB16_OP2)		; Load low byte of address
 		ldi	YH, high(SUB16_OP2)		;Load high byte of address
+		lpm mpr,Z+
+		st Y+, mpr					;Load first byte of op2
+		lpm mpr,Z+
+		st Y+, mpr					;Load first byte of op2
+
+		ldi ZL, LOW(OperandI<<1)
+		ldi ZH, HIGH(OperandI<<1)	;Load Z with the address of string 1
+		ldi	YL, low(ADD16_OP2)		; Load low byte of address
+		ldi	YH, high(ADD16_OP2)		;Load high byte of address
 		lpm mpr,Z+
 		st Y+, mpr					;Load first byte of op2
 		lpm mpr,Z+
@@ -133,8 +142,8 @@ LOADMUL:
 		; Load beginning address of first operand into X
 		ldi ZL, LOW(OperandE1<<1)
 		ldi ZH, HIGH(OperandE1<<1)	;Load Z with the address of string 1
-		ldi	YL, low(SUB16_OP1)		; Load low byte of address
-		ldi	YH, high(SUB16_OP1)		; Load high byte of address
+		ldi	YL, low(MUL24_OP1)		; Load low byte of address
+		ldi	YH, high(MUL24_OP1)		; Load high byte of address
 		lpm mpr,Z+
 		st Y+, mpr					;Load first byte of op1
 		lpm mpr,Z+
@@ -142,8 +151,8 @@ LOADMUL:
 
 		ldi ZL, LOW(OperandD<<1)
 		ldi ZH, HIGH(OperandD<<1)	;Load Z with the address of string 1
-		ldi	YL, low(SUB16_OP2)		; Load low byte of address
-		ldi	YH, high(SUB16_OP2)		;Load high byte of address
+		ldi	YL, low(MUL24_OP2)		; Load low byte of address
+		ldi	YH, high(MUL24_OP2)		;Load high byte of address
 		lpm mpr,Z+
 		st Y+, mpr					;Load first byte of op2
 		lpm mpr,Z+
@@ -224,8 +233,8 @@ ADD16:
 		ldi		YH, high(ADD16_OP2)	; Load high byte of address
 
 		; Load beginning address of result into Z
-		ldi		ZL, low(ADD16_OP1)	; Load low byte of address
-		ldi		ZH, high(ADD16_OP1)	; Load high byte of address
+		ldi		ZL, low(ADD16_Result)	; Load low byte of address
+		ldi		ZH, high(ADD16_Result)	; Load high byte of address
 		; Execute the function
 		ld operand1, X+
 		ld operand2, Y+				;Load lower bytes of operands
@@ -247,9 +256,17 @@ ADD16:
 ;       result. Always subtracts from the bigger values.
 ;-----------------------------------------------------------
 SUB16:
+		; Load beginning address of first operand into X
+		ldi		XL, low(SUB16_OP1)	; Load low byte of address
+		ldi		XH, high(SUB16_OP1)	; Load high byte of address
+
+		; Load beginning address of second operand into Y
+		ldi		YL, low(SUB16_OP2)	; Load low byte of address
+		ldi		YH, high(SUB16_OP2)	; Load high byte of address
+
 		; Load beginning address of result into Z
-		ldi		ZL, low(SUB16_OP1)	; Load low byte of address
-		ldi		ZH, high(SUB16_OP1)	; Load high byte of address
+		ldi		ZL, low(SUB16_Result)	; Load low byte of address
+		ldi		ZH, high(SUB16_Result)	; Load high byte of address
 		; Execute the function
 		ld operand1, X+
 		ld operand2, Y+				;Load lower bytes of operands
@@ -309,6 +326,8 @@ MUL24_ILOOP:
 		ld		B, Z+			; Get the next result byte from memory
 		add		rlo, A			; rlo <= rlo + A
 		adc		rhi, B			; rhi <= rhi + B + carry
+		ld		A, Z+			; Get a third byte from the result
+		adc		A, zero			; Add carry to A
 		ld		A, Z			; Get a third byte from the result
 		adc		A, zero			; Add carry to A
 		st		Z, A			; Store third byte to memory
@@ -319,7 +338,7 @@ MUL24_ILOOP:
 		brne	MUL24_ILOOP		; Loop if iLoop != 0
 		; End inner for loop
 
-		sbiw	ZH:ZL, 1		; Z <= Z - 1
+		sbiw	ZH:ZL, 2		; Z <= Z - 1
 		adiw	YH:YL, 1		; Y <= Y + 1
 		dec		oloop			; Decrement counter
 		brne	MUL16_OLOOP		; Loop if oLoop != 0
@@ -357,6 +376,7 @@ COMPOUND:
 
 		; Setup SUB16 with operands G and H
 		; Perform subtraction to calculate G - H
+
 
 		; Setup the ADD16 function with SUB16 result and operand I
 		; Perform addition next to calculate (G - H) + I
