@@ -149,10 +149,24 @@ LOADMUL:
 		lpm mpr,Z+
 		st Y+, mpr					;Load second byte of op1
 
-		ldi ZL, LOW(OperandD<<1)
-		ldi ZH, HIGH(OperandD<<1)	;Load Z with the address of string 1
+		ldi ZL, LOW(OperandE2<<1)
+		ldi ZH, HIGH(OperandE2<<1)	;Load Z with the address of string 1
+		lpm mpr,Z+
+		st Y+, mpr					;Load first byte of op2
+		lpm mpr,Z+
+		st Y+, mpr					;Load first byte of op2
+
+		ldi ZL, LOW(OperandF1<<1)
+		ldi ZH, HIGH(OperandF1<<1)	;Load Z with the address of string 1
 		ldi	YL, low(MUL24_OP2)		; Load low byte of address
-		ldi	YH, high(MUL24_OP2)		;Load high byte of address
+		ldi	YH, high(MUL24_OP2)		; Load high byte of address
+		lpm mpr,Z+
+		st Y+, mpr					;Load first byte of op1
+		lpm mpr,Z+
+		st Y+, mpr					;Load second byte of op1
+
+		ldi ZL, LOW(OperandF2<<1)
+		ldi ZH, HIGH(OperandF2<<1)	;Load Z with the address of string 1
 		lpm mpr,Z+
 		st Y+, mpr					;Load first byte of op2
 		lpm mpr,Z+
@@ -274,7 +288,7 @@ SUB16:
 		st Z+, operand1				;Store in output
 		ld operand1, X+
 		ld operand2, Y+				;Load upper bytes of operands
-		subc operand1, operand2		;Add with carry upper bytes
+		sbc operand1, operand2		;Add with carry upper bytes
 		st Z+, operand1				;Store in output
 		ret						; End a function with RET
 
@@ -302,19 +316,19 @@ MUL24:
 		clr		zero			; Maintain zero semantics
 		; Execute the function here
 		; Set Y to beginning address of B
-		ldi		YL, low(addrB)	; Load low byte
-		ldi		YH, high(addrB)	; Load high byte
+		ldi		YL, low(MUL24_OP2)	; Load low byte
+		ldi		YH, high(MUL24_OP2)	; Load high byte
 
 		; Set Z to begginning address of resulting Product
-		ldi		ZL, low(LAddrP)	; Load low byte
-		ldi		ZH, high(LAddrP); Load high byte
+		ldi		ZL, low(MUL24_Result)	; Load low byte
+		ldi		ZH, high(MUL24_Result); Load high byte
 
 		; Begin outer for loop
 		ldi		oloop, 3		; Load counter
 MUL24_OLOOP:
 		; Set X to beginning address of A
-		ldi		XL, low(addrA)	; Load low byte
-		ldi		XH, high(addrA)	; Load high byte
+		ldi		XL, low(MUL24_OP1)	; Load low byte
+		ldi		XH, high(MUL24_OP1)	; Load high byte
 
 		; Begin inner for loop
 		ldi		iloop, 3		; Load counter
@@ -341,7 +355,7 @@ MUL24_ILOOP:
 		sbiw	ZH:ZL, 2		; Z <= Z - 1
 		adiw	YH:YL, 1		; Y <= Y + 1
 		dec		oloop			; Decrement counter
-		brne	MUL16_OLOOP		; Loop if oLoop != 0
+		brne	MUL24_OLOOP		; Loop if oLoop != 0
 		; End outer for loop
 
 		pop		iloop			; Restore all registers in reverves order
@@ -376,13 +390,45 @@ COMPOUND:
 
 		; Setup SUB16 with operands G and H
 		; Perform subtraction to calculate G - H
+		rcall SUB16
 
-
+		ldi		ZL, low(SUB16_Result)	; Load low byte of address
+		ldi		ZH, high(SUB16_Result)	; Load high byte of address
+		ldi	YL, low(ADD16_OP1)		; Load low byte of address
+		ldi	YH, high(ADD16_OP1)		; Load high byte of address
+		ld mpr,Z+
+		st Y+, mpr					;Load first byte of op1
+		ld mpr,Z+
+		st Y+, mpr					;Load second byte of op1
 		; Setup the ADD16 function with SUB16 result and operand I
+		rcall ADD16
 		; Perform addition next to calculate (G - H) + I
 
 		; Setup the MUL24 function with ADD16 result as both operands
+
+		ldi ZL, LOW(ADD16_Result)
+		ldi ZH, HIGH(ADD16_Result)	;Load Z with the address of string 1
+		ldi	YL, low(MUL24_OP1)		; Load low byte of address
+		ldi	YH, high(MUL24_OP1)		; Load high byte of address
+		ld mpr,Z+
+		st Y+, mpr					;Load first byte of op1
+		ld mpr,Z+
+		st Y+, mpr					;Load second byte of op1
+		ld mpr,Z+
+		st Y+, mpr					;Load second byte of op1
+
+		ldi ZL, LOW(ADD16_Result)
+		ldi ZH, HIGH(ADD16_Result)	;Load Z with the address of string 1
+		ldi	YL, low(MUL24_OP2)		; Load low byte of address
+		ldi	YH, high(MUL24_OP2)		;Load high byte of address
+		ld mpr,Z+
+		st Y+, mpr					;Load first byte of op2
+		ld mpr,Z+
+		st Y+, mpr					;Load first byte of op2
+		ld mpr,Z+
+		st Y+, mpr					;Load first byte of op2
 		; Perform multiplication to calculate ((G - H) + I)^2
+		rcall MUL24
 
 		ret						; End a function with RET
 
@@ -524,9 +570,9 @@ SUB16_OP1:
 SUB16_OP2:
 		.byte 2				; allocate two bytes for second operand of SUB16
 MUL24_OP1:
-		.byte 3				; allocate two bytes for first operand of ADD16
+		.byte 3				; allocate three bytes for first operand of MUL24
 MUL24_OP2:
-		.byte 3				; allocate two bytes for second operand of ADD16
+		.byte 3				; allocate three bytes for second operand of MUL24
 
 .org	$0120				; data memory allocation for results
 ADD16_Result:
