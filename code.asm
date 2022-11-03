@@ -406,6 +406,7 @@ COMPOUND:
 
 		; Setup the MUL24 function with ADD16 result as both operands
 
+		;;;;;;;;;;
 		ldi ZL, LOW(ADD16_Result)
 		ldi ZH, HIGH(ADD16_Result)	;Load Z with the address of string 1
 		ldi	YL, low(MUL24_OP1)		; Load low byte of address
@@ -416,17 +417,24 @@ COMPOUND:
 		st Y+, mpr					;Load second byte of op1
 		ld mpr,Z+
 		st Y+, mpr					;Load second byte of op1
+		ldi mpr, 0x00
+		st Y+, mpr
+		
 
 		ldi ZL, LOW(ADD16_Result)
 		ldi ZH, HIGH(ADD16_Result)	;Load Z with the address of string 1
 		ldi	YL, low(MUL24_OP2)		; Load low byte of address
-		ldi	YH, high(MUL24_OP2)		;Load high byte of address
+		ldi	YH, high(MUL24_OP2)		; Load high byte of address
 		ld mpr,Z+
-		st Y+, mpr					;Load first byte of op2
+		st Y+, mpr					;Load first byte of op1
 		ld mpr,Z+
-		st Y+, mpr					;Load first byte of op2
+		st Y+, mpr					;Load second byte of op1
 		ld mpr,Z+
-		st Y+, mpr					;Load first byte of op2
+		st Y+, mpr					;Load second byte of op1
+		ldi mpr, 0x00
+		st Y+, mpr				;Load first byte of op2
+		;;;;;;;;;;
+
 		; Perform multiplication to calculate ((G - H) + I)^2
 		rcall MUL24
 
