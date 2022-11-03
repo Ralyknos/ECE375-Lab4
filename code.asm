@@ -130,6 +130,15 @@ LOADCOMPOUND:
 		lpm mpr,Z+
 		st Y+, mpr					;Load first byte of op2
 
+		ldi ZL, LOW(ADD16_Result)
+		ldi ZH, HIGH(ADD16_Result)
+		clr mpr
+		ldi oloop, 11
+		clear_space:
+			st Z+,mpr
+			dec oloop
+			BRNE clear_space
+
 		pop mpr
 		ret						; End a function with RET
 
@@ -258,10 +267,9 @@ ADD16:
 		ld operand2, Y+				;Load upper bytes of operands
 		adc operand1, operand2		;Add with carry upper bytes
 		st Z+, operand1				;Store in output
-		brcc skip					;If carry is clear skip to end
-		ldi mpr, 1
+		clr mpr
+		adc mpr, zero					
 		st Z,mpr					;Store carry bit in last register
-		skip:
 		ret						; End a function with RET
 
 ;-----------------------------------------------------------
@@ -342,9 +350,10 @@ MUL24_ILOOP:
 		adc		rhi, B			; rhi <= rhi + B + carry
 		ld		A, Z+			; Get a third byte from the result
 		adc		A, zero			; Add carry to A
-		ld		A, Z			; Get a third byte from the result
-		adc		A, zero			; Add carry to A
-		st		Z, A			; Store third byte to memory
+		ld		B, Z			; Get a 4th byte from the result
+		adc		B, zero			; Add carry to A
+		st		Z, B			; Store 4th byte to memory
+		st 		-Z, A			;Store third byte to memory
 		st		-Z, rhi			; Store second byte to memory
 		st		-Z, rlo			; Store first byte to memory
 		adiw	ZH:ZL, 1		; Z <= Z + 1
@@ -432,7 +441,7 @@ COMPOUND:
 		ld mpr,Z+
 		st Y+, mpr					;Load second byte of op1
 		ldi mpr, 0x00
-		st Y+, mpr				;Load first byte of op2
+		st Y+, mpr					;Load first byte of op2
 		;;;;;;;;;;
 
 		; Perform multiplication to calculate ((G - H) + I)^2
